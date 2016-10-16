@@ -5,7 +5,7 @@ import org.apache.spark.ml.Transformer
 import org.apache.spark.ml.param.{Param, ParamMap, Params}
 import org.apache.spark.ml.util.Identifiable
 import org.apache.spark.sql.{DataFrame, Dataset}
-import org.apache.spark.sql.types.StructType
+import org.apache.spark.sql.types.{ArrayType, IntegerType, StringType, StructType}
 
 private[nkp] trait NKPParams extends Params {
   final val idCol: Param[String] = new Param[String](this, "idCol", "Column name to identify each row")
@@ -91,24 +91,40 @@ class NKP(override val uid: String)
     }
   }
 
-  private final val morsCol = "__mors__"
-  private final val morCol = "__mor__"
+  private final val MORS_COL = "__mors__"
+  private final val MOR_COL = "__mor__"
 
   override def transform(dataset: Dataset[_]): DataFrame = {
-    //transformSchema(dataset.schema)
+    transformSchema(dataset.schema)
 
     require(dataset.select($(idCol)).count == dataset.select($(idCol)).distinct.count,
       s"Column ${$(idCol)} should be unique ID")
 
     dataset.select($(idCol), $(textCol))
-      .withColumn(morsCol, extractWords(col($(textCol))))
-      .select(col($(idCol)), explode(col(morsCol)).as(morCol))
-      .selectExpr($(idCol), s"$morCol._1", s"$morCol._2", s"$morCol._3", s"$morCol._4", s"$morCol._5")
+      .withColumn(MORS_COL, extractWords(col($(textCol))))
+      .select(col($(idCol)), explode(col(MORS_COL)).as(MOR_COL))
+      .selectExpr($(idCol), s"$MOR_COL._1", s"$MOR_COL._2", s"$MOR_COL._3", s"$MOR_COL._4", s"$MOR_COL._5")
       .toDF($(idCol), $(wordCol), $(posCol), $(charCol), $(startCol), $(endCol))
   }
 
   override def copy(extra: ParamMap): Transformer = defaultCopy(extra)
 
   @DeveloperApi
-  override def transformSchema(schema: StructType): StructType = ???
+  override def transformSchema(schema: StructType): StructType = {
+    require(schema.fieldNames.contains($(idCol)),
+      s"Dataset should have ${$(idCol)} column")
+    require(schema.fieldNames.contains($(textCol)),
+      s"Dataset should have ${$(textCol)} column")
+
+    require(schema($(textCol)).dataType.equals(StringType),
+      s"Type of ${$(textCol)} should be String")
+
+    new StructType()
+      .add($(idCol), schema($(idCol)).dataType)
+      .add($(wordCol), StringType)
+      .add($(posCol), ArrayType(StringType))
+      .add($(charCol), ArrayType(StringType))
+      .add($(startCol), IntegerType)
+      .add($(endCol), IntegerType)
+  }
 }

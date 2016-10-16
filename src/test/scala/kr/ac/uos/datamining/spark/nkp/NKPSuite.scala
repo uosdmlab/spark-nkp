@@ -9,13 +9,17 @@ import org.scalatest.{BeforeAndAfterAll, FunSuite}
   */
 class NKPSuite extends FunSuite with BeforeAndAfterAll {
   private var spark: SparkSession = _
+  private var nkp: NKP = _
 
   override protected def beforeAll(): Unit = {
     super.beforeAll()
+
     spark = SparkSession.builder()
       .master("local[*]")
       .appName("NKP Suite")
       .getOrCreate
+
+    nkp = new NKP
   }
 
   override protected def afterAll(): Unit = {
@@ -34,11 +38,9 @@ class NKPSuite extends FunSuite with BeforeAndAfterAll {
     "데이터야~ 놀자~"
   )
 
-  private val intId = sample.indices
-  private val doubleId = intId.map(_.toDouble)
-  private val stringId = for (i <- intId) yield Identifiable.randomUID("sid")
-
-  private val nkp = new NKP
+  private val intId: Seq[Int] = 1 to sample.size
+  private val doubleId: Seq[Double] = intId.map(_.toDouble)
+  private val stringId: Seq[String] = for (i <- intId) yield Identifiable.randomUID("sid")
 
   test("Defualt parameters") {
     assert(nkp.getIdCol == "id")
@@ -78,5 +80,45 @@ class NKPSuite extends FunSuite with BeforeAndAfterAll {
     val result = nkp.transform(df)
 
     assert(result.select("id").distinct.count == sample.size)
+  }
+
+  test("Unidentifiable id column exception") {
+    val df = spark.createDataFrame(
+      (1 +: (1 until sample.size)) zip sample
+    ).toDF("id", "text")
+
+    intercept[IllegalArgumentException] {
+      nkp.transform(df).collect
+    }
+  }
+
+  test("There is no 'idCol' exception") {
+    val df = spark.createDataFrame(
+      intId zip sample
+    ).toDF("not_a_id_column", "text")
+
+    intercept[IllegalArgumentException] {
+      nkp.transform(df).collect
+    }
+  }
+
+  test("There is no 'textCol' exception") {
+    val df = spark.createDataFrame(
+      intId zip sample
+    ).toDF("id", "not_a_text_column")
+
+    intercept[IllegalArgumentException] {
+      nkp.transform(df).collect
+    }
+  }
+
+  test("Non-string text column exception") {
+    val df = spark.createDataFrame(
+      intId zip intId
+    ).toDF("id", "text")
+
+    intercept[IllegalArgumentException] {
+      nkp.transform(df).collect
+    }
   }
 }
