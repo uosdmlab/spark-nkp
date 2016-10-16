@@ -91,8 +91,8 @@ class NKP(override val uid: String)
     }
   }
 
-  private final val MORS_COL = "__mors__"
-  private final val MOR_COL = "__mor__"
+  private final val MORS_COL = Identifiable.randomUID("__mors__") // temporary array of morpheme column name
+  private final val MOR_COL = Identifiable.randomUID("__mor__")   // temporary morpheme column name
 
   override def transform(dataset: Dataset[_]): DataFrame = {
     transformSchema(dataset.schema)
