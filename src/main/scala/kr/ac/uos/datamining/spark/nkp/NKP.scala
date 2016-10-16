@@ -40,7 +40,7 @@ private[nkp] trait NKPParams extends Params {
 }
 
 /**
-  * Created by jun on 2016. 10. 16..
+  * Natural Korean Processor
   */
 class NKP(override val uid: String)
   extends Transformer
@@ -79,20 +79,25 @@ class NKP(override val uid: String)
 
   setDefault(endCol -> "end")
 
+  /**
+    * Text segmentation UDF
+    */
   private val extractWords = udf { text: String =>
-    val parsed: Seq[LNode] = Analyzer.parse(text)
+    val parsed: Seq[LNode] = Analyzer.parse(text) // Parse text using seunjeon
 
     parsed.map { lNode: LNode =>
-      val start = lNode.startPos // start position
-    val end = lNode.endPos // end position
-    val mor = lNode.morpheme // 형태소
+      val start = lNode.startPos // start offset
+    val end = lNode.endPos // end offset
+    val mor = lNode.morpheme // morpheme
 
+      // word, POS(Part Of Speech), characteristic(feature in seunjeon), start offset, end offset
       (mor.surface, mor.poses.map(_.toString), mor.feature, start, end)
     }
   }
 
-  private final val MORS_COL = Identifiable.randomUID("__mors__") // temporary array of morpheme column name
-  private final val MOR_COL = Identifiable.randomUID("__mor__")   // temporary morpheme column name
+  private final val MORS_COL = Identifiable.randomUID("__mors__")
+  // temporary array of morpheme column name
+  private final val MOR_COL = Identifiable.randomUID("__mor__") // temporary morpheme column name
 
   override def transform(dataset: Dataset[_]): DataFrame = {
     transformSchema(dataset.schema)
@@ -101,10 +106,10 @@ class NKP(override val uid: String)
       s"Column ${$(idCol)} should be unique ID")
 
     dataset.select($(idCol), $(textCol))
-      .withColumn(MORS_COL, extractWords(col($(textCol))))
-      .select(col($(idCol)), explode(col(MORS_COL)).as(MOR_COL))
-      .selectExpr($(idCol), s"$MOR_COL._1", s"$MOR_COL._2", s"$MOR_COL._3", s"$MOR_COL._4", s"$MOR_COL._5")
-      .toDF($(idCol), $(wordCol), $(posCol), $(charCol), $(startCol), $(endCol))
+      .withColumn(MORS_COL, extractWords(col($(textCol)))) // segment text into array
+      .select(col($(idCol)), explode(col(MORS_COL)).as(MOR_COL)) // explode array
+      .selectExpr($(idCol), s"$MOR_COL._1", s"$MOR_COL._2", s"$MOR_COL._3", s"$MOR_COL._4", s"$MOR_COL._5") // flatten struct
+      .toDF($(idCol), $(wordCol), $(posCol), $(charCol), $(startCol), $(endCol)) // assign column names
   }
 
   override def copy(extra: ParamMap): Transformer = defaultCopy(extra)
