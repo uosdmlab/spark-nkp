@@ -3,7 +3,7 @@ package kr.ac.uos.datamining.spark.nkp
 import org.apache.spark.annotation.DeveloperApi
 import org.apache.spark.ml.Transformer
 import org.apache.spark.ml.param.{Param, ParamMap, Params}
-import org.apache.spark.ml.util.Identifiable
+import org.apache.spark.ml.util.{DefaultParamsReadable, DefaultParamsWritable, Identifiable}
 import org.apache.spark.sql.{DataFrame, Dataset}
 import org.apache.spark.sql.types.{ArrayType, IntegerType, StringType, StructType}
 
@@ -42,9 +42,8 @@ private[nkp] trait NKPParams extends Params {
 /**
   * Natural Korean Processor
   */
-class NKP(override val uid: String)
-  extends Transformer
-    with NKPParams {
+class NKP(override val uid: String) extends Transformer
+  with NKPParams with DefaultParamsWritable {
 
   import org.bitbucket.eunjeon.seunjeon.{Analyzer, LNode}
   import org.apache.spark.sql.functions._
@@ -132,4 +131,8 @@ class NKP(override val uid: String)
       .add($(startCol), IntegerType)
       .add($(endCol), IntegerType)
   }
+}
+
+object NKP extends DefaultParamsReadable[NKP] {
+  override def load(path: String): NKP = super.load(path)
 }
