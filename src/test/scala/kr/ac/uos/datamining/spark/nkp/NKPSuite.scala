@@ -1,5 +1,7 @@
 package kr.ac.uos.datamining.spark.nkp
 
+import org.apache.spark.ml.Pipeline
+import org.apache.spark.ml.feature.{CountVectorizer, IDF, SQLTransformer}
 import org.apache.spark.ml.util.Identifiable
 import org.apache.spark.sql.SparkSession
 import org.scalatest.{BeforeAndAfterAll, FunSuite}
@@ -120,5 +122,40 @@ class NKPSuite extends FunSuite with BeforeAndAfterAll {
     intercept[IllegalArgumentException] {
       nkp.transform(df).collect
     }
+  }
+
+  test("Pipeline test") {
+    val df = spark.createDataFrame(
+      intId zip sample
+    ).toDF("id", "text")
+
+    val sql = new SQLTransformer()
+      .setStatement(
+        """
+          |SELECT id, COLLECT_LIST(word) AS words
+          |FROM __THIS__
+          |WHERE ARRAY_CONTAINS(pos, 'N')
+          |GROUP BY id
+          |""".stripMargin)
+
+    val cntVec = new CountVectorizer()
+      .setInputCol("words")
+      .setOutputCol("tf")
+
+    val idf = new IDF()
+      .setInputCol("tf")
+      .setOutputCol("tfidf")
+
+    val pipe = new Pipeline()
+      .setStages(Array(nkp, sql, cntVec, idf))
+
+    val pipeModel = pipe.fit(df)
+
+    val result = pipeModel.transform(df)
+
+    assert(result.select("id").distinct.count == sample.size)
+    assert(result.schema.fieldNames.intersect(Array("id", "words", "tf", "tfidf")).size == 4)
+
+    result.show
   }
 }
