@@ -17,7 +17,7 @@ class NKPSuite extends FunSuite with BeforeAndAfterAll {
     super.beforeAll()
 
     spark = SparkSession.builder()
-      .master("local[*]")
+      .master("local[2]")
       .appName("NKP Suite")
       .getOrCreate
 
@@ -44,7 +44,7 @@ class NKPSuite extends FunSuite with BeforeAndAfterAll {
   private val doubleId: Seq[Double] = intId.map(_.toDouble)
   private val stringId: Seq[String] = for (i <- intId) yield Identifiable.randomUID("sid")
 
-  test("Defualt parameters") {
+  test("Default parameters") {
     assert(nkp.getIdCol == "id")
     assert(nkp.getTextCol == "text")
     assert(nkp.getWordCol == "word")
@@ -124,7 +124,7 @@ class NKPSuite extends FunSuite with BeforeAndAfterAll {
     }
   }
 
-  test("Pipeline test") {
+  test("TF-IDF pipeline") {
     val df = spark.createDataFrame(
       intId zip sample
     ).toDF("id", "text")
