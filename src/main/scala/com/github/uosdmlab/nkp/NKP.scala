@@ -1,4 +1,4 @@
-package kr.ac.uos.datamining.spark.nkp
+package com.github.uosdmlab.nkp
 
 import org.apache.spark.annotation.DeveloperApi
 import org.apache.spark.ml.Transformer

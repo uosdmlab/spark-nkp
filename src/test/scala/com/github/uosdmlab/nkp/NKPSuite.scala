@@ -1,4 +1,4 @@
-package kr.ac.uos.datamining.spark.nkp
+package com.github.uosdmlab.nkp
 
 import org.apache.spark.ml.Pipeline
 import org.apache.spark.ml.feature.{CountVectorizer, IDF, SQLTransformer}
