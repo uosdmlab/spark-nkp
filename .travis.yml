@@ -1,3 +1,18 @@
+sudo: false
+
 language: scala
+
+cache:
+  directories:
+    - $HOME/.ivy2/cache
+    - $HOME/.sbt/boot/
+
 scala:
    - 2.11.8
+
+jdk:
+  - openjdk7
+
+before_cache:
+  - find $HOME/.ivy2 -name "ivydata-*.properties" -delete
+  - find $HOME/.sbt -name "*.lock" -delete
