@@ -41,7 +41,7 @@ val result = nkp.transform(df)
 result.show
 ```
 
-#### TF-IDF Pipeline
+#### 명사 단어 TF-IDF with Pipeline
 
 ```scala
 import org.apache.spark.ml.Pipeline
