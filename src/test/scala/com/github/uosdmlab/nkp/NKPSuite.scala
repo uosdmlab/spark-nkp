@@ -21,6 +21,8 @@ class NKPSuite extends FunSuite with BeforeAndAfterAll {
       .appName("NKP Suite")
       .getOrCreate
 
+    spark.sparkContext.setLogLevel("WARN")
+
     nkp = new NKP
   }
 
