@@ -16,8 +16,9 @@ Interpreter Setting > Spark Interpreter > Edit > Dependencies
 
 **artifact** `com.github.uosdmlab:spark-nkp_2.11:0.1.0`
 
-### 예제
-#### 기본 사용법
+## 예제
+### 기본 사용법
+
 ```scala
 import org.apache.spark.sql.functions._
 import com.github.uosdmlab.nkp.NKP
@@ -71,7 +72,7 @@ result.show(10)
 only showing top 10 rows
 ```
 
-#### 명사 단어 TF-IDF with Pipeline
+### 명사 단어 TF-IDF with Pipeline
 ```scala
 import org.apache.spark.ml.Pipeline
 import org.apache.spark.ml.feature.{CountVectorizer, IDF, SQLTransformer}
@@ -129,3 +130,55 @@ result.show
 |  4|    [데이터, 놀자]| (9,[0,5],[1.0,1.0])|(9,[0,5],[0.69314...|
 +---+-------------+--------------------+--------------------+
 ```
+## DataFrame Schema 설명
+### Input Schema
+Input DataFrame은 다음과 같은 column을 가져야 합니다. `id` column의 값들이 고유한(unique) 값이 아닐 경우 오류가 발생합니다. Unique ID는 기본 사용법 예제와 같이 Spark의 SQL 함수 `monotonically_increasing_id`를 사용하면 쉽게 생성할 수 있습니다.
+
+| 이름 | 설명                       |
+|------|----------------------------|
+| id   | 각 text를 구분할 unique ID |
+| text | 분석할 텍스트              |
+
+### Output Schema
+| 이름  | 설명                                     |
+|-------|------------------------------------------|
+| id    | 각 text를 구분할 unique ID               |
+| word  | 단어                                     |
+| pos   | Part Of Speech; 품사                     |
+| char  | characteristic; 특징, seunjeon의 feature |
+| start | 단어 시작 위치                           |
+| end   | 단어 종료 위치                           |
+
+품사 태그는 seunjeon의 [품사 태그 설명](https://docs.google.com/spreadsheets/d/1-9blXKjtjeKZqsf4NzHeYJCrr49-nXeRF6D80udfcwY/edit#gid=589544265)을 참고하시기 바랍니다.
+
+## API
+### Core
+다음 함수를 통해 텍스트를 단어로 쪼갤 수 있습니다.
+- transform(dataset: Dataset[_]): DataFrame
+
+### Setter
+다음 함수들을 통해 column 이름을 설정할 수 있습니다.
+- setIdCol(value: String)
+- setTextCol(value: String)
+- setWordCol(value: String)
+- setPosCol(value: String)
+- setCharCol(value: String)
+- setStartCol(value: String)
+- setEndCol(value: String)
+
+### Getter
+- getIdCol(value: String)
+- getTextCol(value: String)
+- getWordCol(value: String)
+- getPosCol(value: String)
+- getCharCol(value: String)
+- getStartCol(value: String)
+- getEndCol(value: String)
+
+## Test
+```bash
+sbt test
+```
+
+## 알림
+본 패키지는 Spark 2.0 버전을 기준으로 만들어졌습니다.
