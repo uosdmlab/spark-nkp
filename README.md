@@ -1,4 +1,5 @@
 # Natural Korean Processor for Apache Spark
+[![Build Status](https://travis-ci.org/uosdmlab/spark-nkp.svg?branch=master)](https://travis-ci.org/uosdmlab/spark-nkp)
 > For English, please go to [README.eng.md](README.eng.md)
 
 [은전한닢 프로젝트](http://eunjeon.blogspot.kr/)의 형태소 분석기 [seunjeon](https://bitbucket.org/eunjeon/seunjeon)을 [Apache Spark](http://spark.apache.org/)에서 사용하기 쉽게 포장한 패키지입니다.
