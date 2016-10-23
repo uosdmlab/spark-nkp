@@ -9,9 +9,9 @@ import org.scalatest.{BeforeAndAfterAll, FunSuite}
 /**
   * Created by jun on 2016. 10. 16..
   */
-class NKPSuite extends FunSuite with BeforeAndAfterAll {
+class AnalyzerSuite extends FunSuite with BeforeAndAfterAll {
   private var spark: SparkSession = _
-  private var nkp: NKP = _
+  private var nkp: Analyzer = _
 
   override protected def beforeAll(): Unit = {
     super.beforeAll()
@@ -23,7 +23,7 @@ class NKPSuite extends FunSuite with BeforeAndAfterAll {
 
     spark.sparkContext.setLogLevel("WARN")
 
-    nkp = new NKP
+    nkp = new Analyzer
   }
 
   override protected def afterAll(): Unit = {

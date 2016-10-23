@@ -7,7 +7,7 @@ import org.apache.spark.ml.util.{DefaultParamsReadable, DefaultParamsWritable, I
 import org.apache.spark.sql.{DataFrame, Dataset}
 import org.apache.spark.sql.types.{ArrayType, IntegerType, StringType, StructType}
 
-private[nkp] trait NKPParams extends Params {
+private[nkp] trait AnalyzerParams extends Params {
   final val idCol: Param[String] = new Param[String](this, "idCol", "Column name to identify each row")
 
   final def getIdCol: String = $(idCol)
@@ -42,10 +42,10 @@ private[nkp] trait NKPParams extends Params {
 /**
   * Natural Korean Processor
   */
-class NKP(override val uid: String) extends Transformer
-  with NKPParams with DefaultParamsWritable {
+class Analyzer(override val uid: String) extends Transformer
+  with AnalyzerParams with DefaultParamsWritable {
 
-  import org.bitbucket.eunjeon.seunjeon.{Analyzer, LNode}
+  import org.bitbucket.eunjeon.seunjeon.{Analyzer => EunjeonAnalyzer, LNode}
   import org.apache.spark.sql.functions._
 
   def this() = this(Identifiable.randomUID("nkp"))
@@ -82,7 +82,7 @@ class NKP(override val uid: String) extends Transformer
     * Text segmentation UDF
     */
   private val extractWords = udf { text: String =>
-    val parsed: Seq[LNode] = Analyzer.parse(text) // Parse text using seunjeon
+    val parsed: Seq[LNode] = EunjeonAnalyzer.parse(text) // Parse text using seunjeon
 
     parsed.map { lNode: LNode =>
       val start = lNode.startPos // start offset
@@ -133,6 +133,6 @@ class NKP(override val uid: String) extends Transformer
   }
 }
 
-object NKP extends DefaultParamsReadable[NKP] {
-  override def load(path: String): NKP = super.load(path)
+object Analyzer extends DefaultParamsReadable[Analyzer] {
+  override def load(path: String): Analyzer = super.load(path)
 }
