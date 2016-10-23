@@ -1,15 +1,14 @@
 package com.github.uosdmlab.nkp
 
 import org.apache.spark.ml.Pipeline
-import org.apache.spark.ml.feature.{CountVectorizer, IDF, SQLTransformer}
-import org.apache.spark.ml.util.Identifiable
+import org.apache.spark.ml.feature.{CountVectorizer, IDF}
 import org.apache.spark.sql.SparkSession
-import org.scalatest.{BeforeAndAfterAll, FunSuite}
+import org.scalatest.{BeforeAndAfterAll, BeforeAndAfter, FunSuite}
 
 /**
   * Created by jun on 2016. 10. 16..
   */
-class TokenizerSuite extends FunSuite with BeforeAndAfterAll {
+class TokenizerSuite extends FunSuite with BeforeAndAfterAll with BeforeAndAfter {
   private var spark: SparkSession = _
   private var tokenizer: Tokenizer = _
 
@@ -22,10 +21,6 @@ class TokenizerSuite extends FunSuite with BeforeAndAfterAll {
       .getOrCreate
 
     spark.sparkContext.setLogLevel("WARN")
-
-    tokenizer = new Tokenizer()
-      .setInputCol("text")
-      .setOutputCol("words")
   }
 
   override protected def afterAll(): Unit = {
@@ -34,6 +29,12 @@ class TokenizerSuite extends FunSuite with BeforeAndAfterAll {
     } finally {
       super.afterAll()
     }
+  }
+
+  before {
+    tokenizer = new Tokenizer()
+      .setInputCol("text")
+      .setOutputCol("words")
   }
 
   private val sample = Seq(

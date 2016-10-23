@@ -4,12 +4,12 @@ import org.apache.spark.ml.Pipeline
 import org.apache.spark.ml.feature.{CountVectorizer, IDF, SQLTransformer}
 import org.apache.spark.ml.util.Identifiable
 import org.apache.spark.sql.SparkSession
-import org.scalatest.{BeforeAndAfterAll, FunSuite}
+import org.scalatest.{BeforeAndAfterAll, BeforeAndAfter, FunSuite}
 
 /**
   * Created by jun on 2016. 10. 16..
   */
-class AnalyzerSuite extends FunSuite with BeforeAndAfterAll {
+class AnalyzerSuite extends FunSuite with BeforeAndAfterAll with BeforeAndAfter {
   private var spark: SparkSession = _
   private var analyzer: Analyzer = _
 
@@ -18,12 +18,10 @@ class AnalyzerSuite extends FunSuite with BeforeAndAfterAll {
 
     spark = SparkSession.builder()
       .master("local[2]")
-      .appName("NKP Suite")
+      .appName("Analyzer Suite")
       .getOrCreate
 
     spark.sparkContext.setLogLevel("WARN")
-
-    analyzer = new Analyzer
   }
 
   override protected def afterAll(): Unit = {
@@ -32,6 +30,10 @@ class AnalyzerSuite extends FunSuite with BeforeAndAfterAll {
     } finally {
       super.afterAll()
     }
+  }
+
+  before {
+    analyzer = new Analyzer
   }
 
   private val sample = Seq(
