@@ -35,14 +35,13 @@ class Tokenizer(override val uid: String) extends UnaryTransformer[String, Seq[S
 
     val words: Seq[String] =
       if ($(posFilter).size == 0) parsed.map(_.morpheme.surface)
-      else {
-        parsed.map { lNode: LNode =>
-          val mor = lNode.morpheme // morpheme
-          val poses = mor.poses intersect $(posFilter)
-          if (poses.size > 0) Some(mor.surface) else None
-        }.filter(_.nonEmpty)
-          .map(_.get)
-      }
+      else parsed.map { lNode: LNode =>
+        val mor = lNode.morpheme // morpheme
+        val poses = mor.poses.map(_.toString) intersect $(posFilter)  // filter with POS
+
+        if (poses.size > 0) Some(mor.surface) else None
+      }.filter(_.nonEmpty)
+        .map(_.get)
 
     words
   }
