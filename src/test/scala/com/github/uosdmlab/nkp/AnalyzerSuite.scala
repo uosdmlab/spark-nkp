@@ -11,7 +11,7 @@ import org.scalatest.{BeforeAndAfterAll, FunSuite}
   */
 class AnalyzerSuite extends FunSuite with BeforeAndAfterAll {
   private var spark: SparkSession = _
-  private var nkp: Analyzer = _
+  private var analyzer: Analyzer = _
 
   override protected def beforeAll(): Unit = {
     super.beforeAll()
@@ -23,7 +23,7 @@ class AnalyzerSuite extends FunSuite with BeforeAndAfterAll {
 
     spark.sparkContext.setLogLevel("WARN")
 
-    nkp = new Analyzer
+    analyzer = new Analyzer
   }
 
   override protected def afterAll(): Unit = {
@@ -47,13 +47,13 @@ class AnalyzerSuite extends FunSuite with BeforeAndAfterAll {
   private val stringId: Seq[String] = for (i <- intId) yield Identifiable.randomUID("sid")
 
   test("Default parameters") {
-    assert(nkp.getIdCol == "id")
-    assert(nkp.getTextCol == "text")
-    assert(nkp.getWordCol == "word")
-    assert(nkp.getPosCol == "pos")
-    assert(nkp.getCharCol == "char")
-    assert(nkp.getStartCol == "start")
-    assert(nkp.getEndCol == "end")
+    assert(analyzer.getIdCol == "id")
+    assert(analyzer.getTextCol == "text")
+    assert(analyzer.getWordCol == "word")
+    assert(analyzer.getPosCol == "pos")
+    assert(analyzer.getCharCol == "char")
+    assert(analyzer.getStartCol == "start")
+    assert(analyzer.getEndCol == "end")
   }
 
   test("Integer ID") {
@@ -61,7 +61,7 @@ class AnalyzerSuite extends FunSuite with BeforeAndAfterAll {
       intId zip sample
     ).toDF("id", "text")
 
-    val result = nkp.transform(df)
+    val result = analyzer.transform(df)
 
     assert(result.select("id").distinct.count == sample.size)
   }
@@ -71,7 +71,7 @@ class AnalyzerSuite extends FunSuite with BeforeAndAfterAll {
       doubleId zip sample
     ).toDF("id", "text")
 
-    val result = nkp.transform(df)
+    val result = analyzer.transform(df)
 
     assert(result.select("id").distinct.count == sample.size)
   }
@@ -81,7 +81,7 @@ class AnalyzerSuite extends FunSuite with BeforeAndAfterAll {
       stringId zip sample
     ).toDF("id", "text")
 
-    val result = nkp.transform(df)
+    val result = analyzer.transform(df)
 
     assert(result.select("id").distinct.count == sample.size)
   }
@@ -92,7 +92,7 @@ class AnalyzerSuite extends FunSuite with BeforeAndAfterAll {
     ).toDF("id", "text")
 
     intercept[IllegalArgumentException] {
-      nkp.transform(df).collect
+      analyzer.transform(df).collect
     }
   }
 
@@ -102,7 +102,7 @@ class AnalyzerSuite extends FunSuite with BeforeAndAfterAll {
     ).toDF("not_a_id_column", "text")
 
     intercept[IllegalArgumentException] {
-      nkp.transform(df).collect
+      analyzer.transform(df).collect
     }
   }
 
@@ -112,7 +112,7 @@ class AnalyzerSuite extends FunSuite with BeforeAndAfterAll {
     ).toDF("id", "not_a_text_column")
 
     intercept[IllegalArgumentException] {
-      nkp.transform(df).collect
+      analyzer.transform(df).collect
     }
   }
 
@@ -122,7 +122,7 @@ class AnalyzerSuite extends FunSuite with BeforeAndAfterAll {
     ).toDF("id", "text")
 
     intercept[IllegalArgumentException] {
-      nkp.transform(df).collect
+      analyzer.transform(df).collect
     }
   }
 
@@ -149,7 +149,7 @@ class AnalyzerSuite extends FunSuite with BeforeAndAfterAll {
       .setOutputCol("tfidf")
 
     val pipe = new Pipeline()
-      .setStages(Array(nkp, sql, cntVec, idf))
+      .setStages(Array(analyzer, sql, cntVec, idf))
 
     val pipeModel = pipe.fit(df)
 
