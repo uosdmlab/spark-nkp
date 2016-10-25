@@ -24,11 +24,9 @@ private[nkp] trait AnalyzerParams extends Params {
 
   final def getPosCol: String = $(posCol)
 
-  final val charCol: Param[String] = new Param[String](this, "charCol", "Characteristic column name. " +
-    "This column's value is 'feature' in seunjeon. It can be confused with Spark ML's feature, so " +
-    "I changed name.")
+  final val featureCol: Param[String] = new Param[String](this, "featureCol", "Feature column name")
 
-  final def getCharCol: String = $(charCol)
+  final def getFeatureCol: String = $(featureCol)
 
   final val startCol: Param[String] = new Param[String](this, "startCol", "Start offset column name")
 
@@ -66,9 +64,9 @@ class Analyzer(override val uid: String) extends Transformer
 
   setDefault(posCol -> "pos")
 
-  def setCharCol(value: String): this.type = set(charCol, value)
+  def setFeatureCol(value: String): this.type = set(featureCol, value)
 
-  setDefault(charCol -> "char")
+  setDefault(featureCol -> "feature")
 
   def setStartCol(value: String): this.type = set(startCol, value)
 
@@ -89,7 +87,7 @@ class Analyzer(override val uid: String) extends Transformer
     val end = lNode.endPos // end offset
     val mor = lNode.morpheme // morpheme
 
-      // word, POS(Part Of Speech), characteristic(feature in seunjeon), start offset, end offset
+      // word, POS(Part Of Speech), feature, start offset, end offset
       (mor.surface, mor.poses.map(_.toString), mor.feature, start, end)
     }
   }
@@ -109,7 +107,7 @@ class Analyzer(override val uid: String) extends Transformer
       .withColumn(MORS_COL, extractWords(col($(textCol)))) // segment text into array
       .select(col($(idCol)), explode(col(MORS_COL)).as(MOR_COL)) // explode array
       .selectExpr($(idCol), s"$MOR_COL._1", s"$MOR_COL._2", s"$MOR_COL._3", s"$MOR_COL._4", s"$MOR_COL._5") // flatten struct
-      .toDF($(idCol), $(wordCol), $(posCol), $(charCol), $(startCol), $(endCol)) // assign column names
+      .toDF($(idCol), $(wordCol), $(posCol), $(featureCol), $(startCol), $(endCol)) // assign column names
   }
 
   override def copy(extra: ParamMap): Transformer = defaultCopy(extra)
@@ -128,7 +126,7 @@ class Analyzer(override val uid: String) extends Transformer
       .add($(idCol), schema($(idCol)).dataType)
       .add($(wordCol), StringType)
       .add($(posCol), ArrayType(StringType))
-      .add($(charCol), ArrayType(StringType))
+      .add($(featureCol), ArrayType(StringType))
       .add($(startCol), IntegerType)
       .add($(endCol), IntegerType)
   }

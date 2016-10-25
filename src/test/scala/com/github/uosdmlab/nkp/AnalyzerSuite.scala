@@ -53,7 +53,7 @@ class AnalyzerSuite extends FunSuite with BeforeAndAfterAll with BeforeAndAfter 
     assert(analyzer.getTextCol == "text")
     assert(analyzer.getWordCol == "word")
     assert(analyzer.getPosCol == "pos")
-    assert(analyzer.getCharCol == "char")
+    assert(analyzer.getFeatureCol == "feature")
     assert(analyzer.getStartCol == "start")
     assert(analyzer.getEndCol == "end")
   }
