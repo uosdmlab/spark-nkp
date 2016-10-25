@@ -1,15 +1,15 @@
 package com.github.uosdmlab.nkp
 
 import org.apache.spark.ml.UnaryTransformer
-import org.apache.spark.ml.param.{Param, ParamMap, Params, StringArrayParam}
+import org.apache.spark.ml.param.{ParamMap, Params, StringArrayParam}
 import org.apache.spark.ml.util.{DefaultParamsReadable, DefaultParamsWritable, Identifiable}
 import org.apache.spark.sql.types.{ArrayType, DataType, StringType}
 
 private[nkp] trait TokenizerParams extends Params {
 
-  final val posFilter: StringArrayParam = new StringArrayParam(this, "posFilter", "POS(Part Of Speech) filter")
+  final val filter: StringArrayParam = new StringArrayParam(this, "filter", "POS(Part Of Speech) filter")
 
-  final def getPosFilter: Array[String] = $(posFilter)
+  final def getFilter: Array[String] = $(filter)
 }
 
 /**
@@ -20,26 +20,26 @@ class Tokenizer(override val uid: String) extends UnaryTransformer[String, Seq[S
 
   import org.bitbucket.eunjeon.seunjeon.{Analyzer => EunjeonAnalyzer, LNode}
 
-  def this() = this(Identifiable.randomUID("nkp"))
+  def this() = this(Identifiable.randomUID("nkp_t"))
 
-  def setPosFilter(value: Array[String]): this.type = set(posFilter, value)
+  def setFilter(value: Array[String]): this.type = set(filter, value)
 
-  def setPosFilter(value: Seq[String]): this.type = setPosFilter(value.toArray)
+  def setFilter(value: Seq[String]): this.type = setFilter(value.toArray)
 
-  def setPosFilter(value: String, values: String*): this.type = setPosFilter(value +: values)
+  def setFilter(value: String, values: String*): this.type = setFilter(value +: values)
 
-  setDefault(posFilter -> Array.empty[String])
+  setDefault(filter -> Array.empty[String])
 
   override protected def createTransformFunc: String => Seq[String] = { text: String =>
     val parsed: Seq[LNode] = EunjeonAnalyzer.parse(text) // Parse text using seunjeon
 
     val words: Seq[String] =
-      if ($(posFilter).size == 0) parsed.map(_.morpheme.surface)
+      if ($(filter).length == 0) parsed.map(_.morpheme.surface)
       else parsed.map { lNode: LNode =>
         val mor = lNode.morpheme // morpheme
-        val poses = mor.poses.map(_.toString) intersect $(posFilter)  // filter with POS
+        val poses = mor.poses.map(_.toString) intersect $(filter)  // filter with POS
 
-        if (poses.size > 0) Some(mor.surface) else None
+        if (poses.nonEmpty) Some(mor.surface) else None
       }.filter(_.nonEmpty)
         .map(_.get)
 

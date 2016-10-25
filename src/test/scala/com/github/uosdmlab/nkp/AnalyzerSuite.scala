@@ -158,7 +158,12 @@ class AnalyzerSuite extends FunSuite with BeforeAndAfterAll with BeforeAndAfter 
     val result = pipeModel.transform(df)
 
     assert(result.select("id").distinct.count == sample.size)
-    assert(result.schema.fieldNames.intersect(Array("id", "words", "tf", "tfidf")).size == 4)
+
+    val fields = result.schema.fieldNames
+    assert(fields.contains(analyzer.getIdCol))
+    assert(fields.contains(cntVec.getInputCol))
+    assert(fields.contains(cntVec.getOutputCol))
+    assert(fields.contains(idf.getOutputCol))
 
     result.show
   }

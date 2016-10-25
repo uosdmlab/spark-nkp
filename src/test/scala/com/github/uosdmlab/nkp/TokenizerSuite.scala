@@ -9,19 +9,18 @@ import org.scalatest.{BeforeAndAfterAll, BeforeAndAfter, FunSuite}
   * Created by jun on 2016. 10. 16..
   */
 class TokenizerSuite extends FunSuite with BeforeAndAfterAll with BeforeAndAfter {
-  private var spark: SparkSession = _
+
   private var tokenizer: Tokenizer = _
 
-  override protected def beforeAll(): Unit = {
-    super.beforeAll()
-
-    spark = SparkSession.builder()
+  private val spark: SparkSession =
+    SparkSession.builder()
       .master("local[2]")
       .appName("Tokenizer Suite")
       .getOrCreate
 
-    spark.sparkContext.setLogLevel("WARN")
-  }
+  spark.sparkContext.setLogLevel("WARN")
+
+  import spark.implicits._
 
   override protected def afterAll(): Unit = {
     try {
@@ -37,39 +36,42 @@ class TokenizerSuite extends FunSuite with BeforeAndAfterAll with BeforeAndAfter
       .setOutputCol("words")
   }
 
-  private val sample = Seq(
-    "아버지가방에들어가신다.",
-    "사랑해요 제플린!",
-    "스파크는 재밌어",
-    "나는야 데이터과학자",
-    "데이터야~ 놀자~"
-  )
-
-  private val intId: Seq[Int] = 1 to sample.size
+  private val df = spark.createDataset(
+    Seq(
+      "아버지가방에들어가신다.",
+      "사랑해요 제플린!",
+      "스파크는 재밌어",
+      "나는야 데이터과학자",
+      "데이터야~ 놀자~"
+    )
+  ).toDF("text")
 
   test("Default parameters") {
-    assert(tokenizer.getPosFilter sameElements Array.empty[String])
+    assert(tokenizer.getFilter sameElements Array.empty[String])
   }
 
   test("Basic operation") {
-    val df = spark.createDataFrame(
-      intId zip sample
-    ).toDF("id", "text")
-      .drop("id")
-
     val words = tokenizer.transform(df)
 
     assert(df.count == words.count)
     assert(words.schema.fieldNames.contains(tokenizer.getOutputCol))
   }
 
-  test("TF-IDF pipeline") {
-    val df = spark.createDataFrame(
-      intId zip sample
-    ).toDF("id", "text")
-      .drop("id")
+  test("POS filter") {
+    val nvTokenizer = new Tokenizer()
+      .setInputCol("text")
+      .setOutputCol("nvWords")
+      .setFilter("N", "V")
 
-    tokenizer.setPosFilter("N")
+    val words = tokenizer.transform(df).join(nvTokenizer.transform(df), "text")
+
+    assert(df.count == words.count)
+    assert(words.schema.fieldNames.contains(nvTokenizer.getOutputCol))
+    assert(words.where(s"SIZE(${tokenizer.getOutputCol}) < SIZE(${nvTokenizer.getOutputCol})").count == 0)
+  }
+
+  test("TF-IDF pipeline") {
+    tokenizer.setFilter("N")
 
     val cntVec = new CountVectorizer()
       .setInputCol("words")
@@ -86,8 +88,12 @@ class TokenizerSuite extends FunSuite with BeforeAndAfterAll with BeforeAndAfter
 
     val result = pipeModel.transform(df)
 
-    assert(result.count == sample.size)
-    assert(result.schema.fieldNames.intersect(Array(tokenizer.getOutputCol, cntVec.getOutputCol, idf.getOutputCol)).length == 3)
+    assert(result.count == df.count)
+
+    val fields = result.schema.fieldNames
+    assert(fields.contains(tokenizer.getOutputCol))
+    assert(fields.contains(cntVec.getOutputCol))
+    assert(fields.contains(idf.getOutputCol))
 
     result.show
   }

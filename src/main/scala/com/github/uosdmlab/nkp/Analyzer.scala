@@ -48,7 +48,7 @@ class Analyzer(override val uid: String) extends Transformer
   import org.bitbucket.eunjeon.seunjeon.{Analyzer => EunjeonAnalyzer, LNode}
   import org.apache.spark.sql.functions._
 
-  def this() = this(Identifiable.randomUID("nkp"))
+  def this() = this(Identifiable.randomUID("nkp_a"))
 
   def setIdCol(value: String): this.type = set(idCol, value)
 
@@ -94,9 +94,10 @@ class Analyzer(override val uid: String) extends Transformer
     }
   }
 
-  private final val MORS_COL = Identifiable.randomUID("__mors__")
   // temporary array of morpheme column name
-  private final val MOR_COL = Identifiable.randomUID("__mor__") // temporary morpheme column name
+  private final val MORS_COL = Identifiable.randomUID("__mors__")
+  // temporary morpheme column name
+  private final val MOR_COL = Identifiable.randomUID("__mor__")
 
   override def transform(dataset: Dataset[_]): DataFrame = {
     transformSchema(dataset.schema)
