@@ -205,6 +205,13 @@ val tokenizer = new Tokenizer()
 ### Analyzer
 형태소 분석을 위한 *transformer* 입니다. 분석할 문장들과 각 문장들을 구분할 `id`를 입력값으로 받습니다.
 
+#### Example
+```scala
+import com.github.uosdmlab.nkp.Analyzer
+
+val analyzer = new Analyzer
+```
+
 #### Analyzer DataFrame Schema
 ##### Input Schema
 Input DataFrame은 다음과 같은 column들을 가져야 합니다. `id` column의 값들이 고유한(unique) 값이 아닐 경우 오류가 발생합니다. Unique ID는 상단의 Analyzer 예제와 같이 Spark의 SQL 함수 `monotonically_increasing_id`를 사용하면 쉽게 생성할 수 있습니다.
