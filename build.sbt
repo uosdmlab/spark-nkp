@@ -6,7 +6,7 @@ version := "0.2.1"
 
 scalaVersion := "2.11.8"
 
-val sparkVersion = "2.0.1"
+val sparkVersion = "2.1.1"
 
 libraryDependencies ++= Seq(
   "org.bitbucket.eunjeon" %% "seunjeon" % "1.3.0"
