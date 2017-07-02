@@ -2,7 +2,7 @@ name := "spark-nkp"
 
 organization := "com.github.uosdmlab"
 
-version := "0.2.1"
+version := "0.3.0"
 
 scalaVersion := "2.11.8"
 
