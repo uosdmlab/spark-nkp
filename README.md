@@ -2,20 +2,34 @@
 > For English, please go to [README.eng.md](README.eng.md)
 
 [은전한닢 프로젝트](http://eunjeon.blogspot.kr/)의 형태소 분석기 [seunjeon](https://bitbucket.org/eunjeon/seunjeon)을 [Apache Spark](http://spark.apache.org/)에서 사용하기 쉽게 포장한 패키지입니다. `spark-nkp`는 다음과 같은 두 가지 [Transformer](http://spark.apache.org/docs/latest/ml-pipeline.html#transformers)를 제공합니다:
-- `Tokenizer` 문장을 형태소 단위로 쪼개는 *transformer*. 원하는 품사만을 걸러낼 수도 있습니다.
-- `Analyzer` 형태소 분석을 위한 *transformer*. 문장의 단어들에 대한 자세한 정보를 담은 *DataFrame*을 출력합니다.
+* `Tokenizer` 문장을 형태소 단위로 쪼개는 *transformer*. 원하는 품사만을 걸러낼 수도 있습니다.
+* `Analyzer` 형태소 분석을 위한 *transformer*. 문장의 단어들에 대한 자세한 정보를 담은 *DataFrame*을 출력합니다.
+
+또한, 사용자 정의 사전을 지원하기 위한 `Dictionary`를 제공합니다.
+
 
 ## 사용법
 
 ### spark-shell
 ```bash
-spark-shell --packages com.github.uosdmlab:spark-nkp_2.11:0.2.1
+spark-shell --packages com.github.uosdmlab:spark-nkp_2.11:0.3.1
 ```
 
 ### Zeppelin
+두 가지 방법으로 사용 가능합니다:
+* Interpreter Setting
+* Dynamic Dependency Loading (`%spark.dep`)
+
+#### Interpreter Setting
 Interpreter Setting > Spark Interpreter > Edit > Dependencies
 
-**artifact** `com.github.uosdmlab:spark-nkp_2.11:0.2.1`
+**artifact** `com.github.uosdmlab:spark-nkp_2.11:0.3.1`
+
+#### Dynamic Dependency Loading (`%spark.dep`)
+```scala
+%spark.dep
+z.load("com.github.uosdmlab:spark-nkp_2.11:0.3.1")
+```
 
 ## 예제
 ### Tokenizer
@@ -106,6 +120,34 @@ result.show(truncate = false)
 only showing top 20 rows
 ```
 
+### Dictionary
+```scala
+import com.github.uosdmlab.nkp.{Tokenizer, Dictionary}
+
+val df = spark.createDataset(
+	Seq("넌 눈치도 없니? 낄끼빠빠!")
+).toDF("text")
+
+val tokenizer = new Tokenizer()
+	.setInputCol("text")
+	.setOutputCol("words")
+
+Dictionary.addWords("낄끼+빠빠,-100")
+
+val result = tokenizer.transform(df)
+
+result.show(truncate = false)
+```
+
+*output:*
+```bash
++---------------+----------------------------+
+|text           |words                       |
++---------------+----------------------------+
+|넌 눈치도 없니? 낄끼빠빠!|[넌, 눈치, 도, 없, 니, ?, 낄끼빠빠, !]|
++---------------+----------------------------+
+```
+
 ### 명사 단어 TF-IDF with Pipeline
 ```scala
 import org.apache.spark.ml.Pipeline
@@ -173,34 +215,34 @@ val tokenizer = new Tokenizer()
 ```
 
 #### 품사 태그 설명
-- `EP` 선어말어미
-- `E` 어미
-- `I` 독립언
-- `J` 관계언
-- `M` 수식언
-- `N` 체언(명사가 여기 속합니다)
-- `S` 부호
-- `SL` 외국어
-- `SH` 한자
-- `SN` 숫자
-- `V` 용언(동사가 여기 속합니다)
-- `VCP` 긍정지정사
-- `XP` 접두사
-- `XS` 접미사
-- `XR` 어근
+* `EP` 선어말어미
+* `E` 어미
+* `I` 독립언
+* `J` 관계언
+* `M` 수식언
+* `N` 체언 (명사가 여기 속합니다)
+* `S` 부호
+* `SL` 외국어
+* `SH` 한자
+* `SN` 숫자
+* `V` 용언 (동사가 여기 속합니다)
+* `VCP` 긍정지정사
+* `XP` 접두사
+* `XS` 접미사
+* `XR` 어근
 
 #### Members
-- transform(dataset: Dataset[_]): DataFrame
+* `transform(dataset: Dataset[_]): DataFrame`
 
 #### Parameter Setters
-- setFilter(pos: String, poses: String*): Tokenizer
-- setInputCol(value: String): Tokenizer
-- setOutputCol(value: String): Tokenizer
+* `setFilter(pos: String, poses: String*): Tokenizer`
+* `setInputCol(value: String): Tokenizer`
+* `setOutputCol(value: String): Tokenizer`
 
 #### Parameter Getters
-- getFilter: Array[String]
-- getInputCol: String
-- getOutputCol: String
+* `getFilter: Array[String]`
+* `getInputCol: String`
+* `getOutputCol: String`
 
 ### Analyzer
 형태소 분석을 위한 *transformer* 입니다. 분석할 문장들과 각 문장들을 구분할 `id`를 입력값으로 받습니다.
@@ -234,25 +276,63 @@ Input DataFrame은 다음과 같은 column들을 가져야 합니다. `id` colum
 자세한 품사 태그 설명은 seunjeon의 [품사 태그 설명 스프레드 시트](https://docs.google.com/spreadsheets/d/1-9blXKjtjeKZqsf4NzHeYJCrr49-nXeRF6D80udfcwY/edit#gid=589544265)를 참고하시기 바랍니다.
 
 #### Members
-- transform(dataset: Dataset[_]): DataFrame
+* `transform(dataset: Dataset[_]): DataFrame`
 
 #### Parameter Setters
-- setIdCol(value: String)
-- setTextCol(value: String)
-- setWordCol(value: String)
-- setPosCol(value: String)
-- setCharCol(value: String)
-- setStartCol(value: String)
-- setEndCol(value: String)
+* `setIdCol(value: String)`
+* `setTextCol(value: String)`
+* `setWordCol(value: String)`
+* `setPosCol(value: String)`
+* `setCharCol(value: String)`
+* `setStartCol(value: String)`
+* `setEndCol(value: String)`
 
 #### Parameter Getters
-- getIdCol(value: String)
-- getTextCol(value: String)
-- getWordCol(value: String)
-- getPosCol(value: String)
-- getCharCol(value: String)
-- getStartCol(value: String)
-- getEndCol(value: String)
+* `getIdCol(value: String)`
+* `getTextCol(value: String)`
+* `getWordCol(value: String)`
+* `getPosCol(value: String)`
+* `getCharCol(value: String)`
+* `getStartCol(value: String)`
+* `getEndCol(value: String)`
+
+### Dictionary
+사용자 정의 사전을 관리하기 위한 `object` 입니다. `Dictionary`에 추가된 단어들은 `Tokenizer`와
+`Analyzer` 모두에게 적용됩니다. 사용자 정의 단어는 `addWords` 혹은 `addWordsFromCSV` 함수를 통해
+추가할 수 있습니다.
+
+#### Example
+```scala
+import com.github.uosdmlab.nkp.Dictionary
+
+Dictionary
+  .addWords("덕후", "낄끼+빠빠,-100")
+  .addWords(Seq("버카충,-100", "C\\+\\+"))
+  .addWordsFromCSV("path/to/CSV1", "path/to/CSV2")
+  .addWordsFromCSV("path/to/*.csv")
+
+Dictionary.reset()  // 사용자 정의 사전 초기화
+```
+
+#### Members
+* `def addWords(word: String, words: String*): Dictionary`
+* `def addWords(words: Traversable[String]): Dictionary`
+* `def addWordsFromCSV(path: String, paths: String*): Dictionary`
+* `def addWordsFromCSV(paths: Traversable[String]): Dictionary`
+* `def reset(): Dictionary`
+
+#### CSV Example
+`addWordsFromCSV`를 통해 전달되는 CSV 파일은 header는 없어야하고 `word`, `cost` 두 개의 컬럼을
+가져야합니다. `cost`는 단어 출연 비용으로 작을수록 출연할 확률이 높음을 뜻합니다. `cost`는 생략 가능합니다. CSV 파일은 `spark.read.csv`를 사용하여 불러오기 때문에 HDFS에 존재하는 파일 또한 사용 가능합니다.
+아래는 CSV 파일의 예입니다:
+
+```
+덕후
+낄끼+빠빠,-100
+버카충,-100
+C\+\+
+```
+`+`로 복합 명사를 등록할 수도 있습니다. `+` 문자 자체를 사전에 등록하기 위해서는 `\+`를 사용하세요.
 
 ## Test
 ```bash
