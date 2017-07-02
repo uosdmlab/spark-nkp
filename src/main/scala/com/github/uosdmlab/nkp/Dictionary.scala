@@ -20,7 +20,7 @@ object Dictionary {
 
   private def syncDictionary(): Unit = EunjeonAnalyzer.setUserDict(words.toIterator)
 
-  def addWords(word: String, words: String*): Unit = addWords(word +: words)
+  def addWords(word: String, words: String*): this.type = addWords(word +: words)
 
   def addWords(words: Traversable[String]): this.type = chain {
     this.words = this.words ++ words
