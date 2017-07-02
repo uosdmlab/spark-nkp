@@ -87,19 +87,19 @@ class DictionarySuite extends FunSuite with BeforeAndAfterAll with BeforeAndAfte
     assertSentences()
   }
 
-  test("setUserDictCSV: one path") {
+  test("addWordsFromCSV: one path") {
     Dictionary.addWordsFromCSV(userDictFile)
     assertSentences(0, 1)
     Dictionary.addWordsFromCSV(userDictAnotherFile)
     assertSentences()
   }
 
-  test("setUserDictCSV: wildcard") {
+  test("addWordsFromCSV: wildcard") {
     Dictionary.addWordsFromCSV(userDictFileWildCard)
     assertSentences()
   }
 
-  test("setUserDictCSV: multi-paths") {
+  test("addWordsFromCSV: multi-paths") {
     Dictionary.addWordsFromCSV(userDictFile, userDictAnotherFile)
     assertSentences()
   }
@@ -112,5 +112,21 @@ class DictionarySuite extends FunSuite with BeforeAndAfterAll with BeforeAndAfte
     intercept[Exception] {
       assertSentences()
     }
+  }
+
+  test("method chaining") {
+    Dictionary
+      .addWords("덕후")
+      .reset()
+      .addWords("덕후", "낄끼+빠빠,-100", "버카충,-100", "C\\+\\+")
+      .reset()
+      .addWords(Seq("덕후", "낄끼+빠빠,-100", "버카충,-100", "C\\+\\+"))
+      .reset()
+      .addWordsFromCSV(userDictFile)
+      .reset()
+      .addWordsFromCSV(userDictFileWildCard)
+      .reset()
+      .addWordsFromCSV(userDictFile, userDictAnotherFile)
+      .reset()
   }
 }
