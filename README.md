@@ -125,14 +125,18 @@ only showing top 20 rows
 import com.github.uosdmlab.nkp.{Tokenizer, Dictionary}
 
 val df = spark.createDataset(
-	Seq("넌 눈치도 없니? 낄끼빠빠!")
-).toDF("text")
+	Seq(
+		"덕후냄새가 난다.",
+		"넌 눈치도 없니? 낄끼빠빠!",
+    "버카충했어?",
+    "C++"))
+	.toDF("text")
 
 val tokenizer = new Tokenizer()
 	.setInputCol("text")
 	.setOutputCol("words")
 
-Dictionary.addWords("낄끼+빠빠,-100")
+Dictionary.addWords("덕후", "낄끼+빠빠,-100", "버카충,-100", "C\\+\\+")
 
 val result = tokenizer.transform(df)
 
@@ -144,7 +148,10 @@ result.show(truncate = false)
 +---------------+----------------------------+
 |text           |words                       |
 +---------------+----------------------------+
+|덕후냄새가 난다.      |[덕후, 냄새, 가, 난다, .]          |
 |넌 눈치도 없니? 낄끼빠빠!|[넌, 눈치, 도, 없, 니, ?, 낄끼빠빠, !]|
+|버카충했어?         |[버카충, 했, 어, ?]              |
+|C++            |[C++]                       |
 +---------------+----------------------------+
 ```
 
@@ -315,11 +322,11 @@ Dictionary.reset()  // 사용자 정의 사전 초기화
 ```
 
 #### Members
-* `def addWords(word: String, words: String*): Dictionary`
-* `def addWords(words: Traversable[String]): Dictionary`
-* `def addWordsFromCSV(path: String, paths: String*): Dictionary`
-* `def addWordsFromCSV(paths: Traversable[String]): Dictionary`
-* `def reset(): Dictionary`
+* `addWords(word: String, words: String*): Dictionary`
+* `addWords(words: Traversable[String]): Dictionary`
+* `addWordsFromCSV(path: String, paths: String*): Dictionary`
+* `addWordsFromCSV(paths: Traversable[String]): Dictionary`
+* `reset(): Dictionary`
 
 #### CSV Example
 `addWordsFromCSV`를 통해 전달되는 CSV 파일은 header는 없어야하고 `word`, `cost` 두 개의 컬럼을
