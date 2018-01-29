@@ -1,39 +1,54 @@
 package com.github.uosdmlab.nkp
 
-import org.apache.spark.sql.{SparkSession, Row}
-import org.apache.spark.sql.types.{StringType, StructField, StructType}
+import org.apache.spark.broadcast.Broadcast
+import org.apache.spark.sql._
+import org.apache.spark.sql.types._
+import org.bitbucket.eunjeon.seunjeon.{Analyzer => EunjeonAnalyzer}
 
 
-/**
-  * Created by jun on 2017. 7. 1..
-  */
 object Dictionary {
 
-  import org.bitbucket.eunjeon.seunjeon.{Analyzer => EunjeonAnalyzer}
+  // Words inside driver. This won't be modified in executor.
+  private[nkp] var words = Seq.empty[String]
+  // Broadcasted words for executors.
+  private var bcWords: Broadcast[Seq[String]] = _
 
-  private var words = Seq.empty[String]
-
-  private def chain(fn: => Any): this.type = {
-    fn
-    this
+  /**
+    * Executed from driver.
+    */
+  private[nkp] def broadcastWords(): Unit = {
+    bcWords = SparkSession.builder().getOrCreate().sparkContext.broadcast(words)
   }
 
-  private def syncDictionary(): Unit = EunjeonAnalyzer.setUserDict(words.toIterator)
+  /**
+    * Executed from executors.
+    * NOTE: broadcastWords() should be executed first.
+    */
+  private[nkp] def syncWords(): Unit = {
+    val dictWords = bcWords.value
+    EunjeonAnalyzer.resetUserDict()
+    if (words.nonEmpty)
+      EunjeonAnalyzer.setUserDict(dictWords.iterator)
+  }
+
+  def reset(): this.type = chain {
+    words = Seq.empty[String]
+  }
+
+  private var isDictionaryUsed = false
+
+  private[nkp] def shouldSync = {
+    isDictionaryUsed
+  }
 
   def addWords(word: String, words: String*): this.type = addWords(word +: words)
 
   def addWords(words: Traversable[String]): this.type = chain {
     this.words = this.words ++ words
-    syncDictionary()
+    isDictionaryUsed = true
   }
 
-  def reset(): this.type = chain {
-    EunjeonAnalyzer.resetUserDict()
-    words = Seq.empty[String]
-  }
-
-  def addWordsFromCSV(path: String, paths: String*): this.type =
-    addWordsFromCSV(path +: paths)
+  def addWordsFromCSV(path: String, paths: String*): this.type = addWordsFromCSV(path +: paths)
 
   def addWordsFromCSV(paths: Traversable[String]): this.type = chain {
     val spark = SparkSession.builder().getOrCreate()
@@ -59,5 +74,10 @@ object Dictionary {
     }.collect()
 
     addWords(words)
+  }
+
+  private def chain(fn: => Any): this.type = {
+    fn
+    this
   }
 }

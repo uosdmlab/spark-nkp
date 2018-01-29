@@ -4,8 +4,10 @@ import org.apache.spark.annotation.DeveloperApi
 import org.apache.spark.ml.Transformer
 import org.apache.spark.ml.param.{Param, ParamMap, Params}
 import org.apache.spark.ml.util.{DefaultParamsReadable, DefaultParamsWritable, Identifiable}
-import org.apache.spark.sql.{DataFrame, Dataset}
-import org.apache.spark.sql.types.{ArrayType, IntegerType, StringType, StructType}
+import org.apache.spark.sql._
+import org.apache.spark.sql.types._
+import org.apache.spark.sql.functions._
+import org.bitbucket.eunjeon.seunjeon.{Analyzer => EunjeonAnalyzer, LNode}
 
 private[nkp] trait AnalyzerParams extends Params {
   final val idCol: Param[String] = new Param[String](this, "idCol", "Column name to identify each row")
@@ -43,9 +45,6 @@ private[nkp] trait AnalyzerParams extends Params {
 class Analyzer(override val uid: String) extends Transformer
   with AnalyzerParams with DefaultParamsWritable {
 
-  import org.bitbucket.eunjeon.seunjeon.{Analyzer => EunjeonAnalyzer, LNode}
-  import org.apache.spark.sql.functions._
-
   def this() = this(Identifiable.randomUID("nkp_a"))
 
   def setIdCol(value: String): this.type = set(idCol, value)
@@ -76,10 +75,7 @@ class Analyzer(override val uid: String) extends Transformer
 
   setDefault(endCol -> "end")
 
-  /**
-    * Text segmentation UDF
-    */
-  private val extractWords = udf { text: String =>
+  private val extractWordsFunc = { text: String =>
     val parsed: Seq[LNode] = EunjeonAnalyzer.parse(text) // Parse text using seunjeon
 
     parsed.map { lNode: LNode =>
@@ -91,6 +87,7 @@ class Analyzer(override val uid: String) extends Transformer
       (mor.surface, mor.poses.map(_.toString), mor.feature, start, end)
     }
   }
+  private val extractWords = udf(extractWordsFunc)
 
   // temporary array of morpheme column name
   private final val MORS_COL = Identifiable.randomUID("__mors__")
@@ -103,11 +100,38 @@ class Analyzer(override val uid: String) extends Transformer
     require(dataset.select($(idCol)).count == dataset.select($(idCol)).distinct.count,
       s"Column ${$(idCol)} should be unique ID")
 
-    dataset.select($(idCol), $(textCol))
-      .withColumn(MORS_COL, extractWords(col($(textCol)))) // segment text into array
-      .select(col($(idCol)), explode(col(MORS_COL)).as(MOR_COL)) // explode array
+    // Select required columns
+    val df = dataset.select($(idCol), $(textCol))
+
+    // Segment texts.
+    val wordsDF = if (Dictionary.shouldSync) transformWithSync(dataset)
+    else df.withColumn(MORS_COL, extractWords(col($(textCol))))
+
+    wordsDF.select(col($(idCol)), explode(col(MORS_COL)).as(MOR_COL)) // explode array
       .selectExpr($(idCol), s"$MOR_COL._1", s"$MOR_COL._2", s"$MOR_COL._3", s"$MOR_COL._4", s"$MOR_COL._5") // flatten struct
       .toDF($(idCol), $(wordCol), $(posCol), $(featureCol), $(startCol), $(endCol)) // assign column names
+  }
+
+  private final val JOIN_ID_COL: String = Identifiable.randomUID("__joinid__")
+
+  private def transformWithSync(dataset: Dataset[_]): DataFrame = {
+    Dictionary.broadcastWords()
+
+    val df = dataset.withColumn(JOIN_ID_COL, monotonically_increasing_id())
+
+    val spark = SparkSession.builder().getOrCreate()
+    import spark.implicits._
+
+    val outputDF = df.select(JOIN_ID_COL, $(textCol))
+      .mapPartitions { it: Iterator[Row] =>
+        Dictionary.syncWords()
+        it.map {
+          case Row(joinId: Long, text: String) => (joinId, extractWordsFunc(text))
+        }
+      }
+      .toDF(JOIN_ID_COL, MORS_COL)
+
+    df.join(outputDF, JOIN_ID_COL).drop(JOIN_ID_COL)
   }
 
   override def copy(extra: ParamMap): Transformer = defaultCopy(extra)

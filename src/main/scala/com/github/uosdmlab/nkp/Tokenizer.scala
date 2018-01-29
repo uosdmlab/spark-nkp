@@ -3,7 +3,9 @@ package com.github.uosdmlab.nkp
 import org.apache.spark.ml.UnaryTransformer
 import org.apache.spark.ml.param.{ParamMap, Params, StringArrayParam}
 import org.apache.spark.ml.util.{DefaultParamsReadable, DefaultParamsWritable, Identifiable}
-import org.apache.spark.sql.types.{ArrayType, DataType, StringType}
+import org.apache.spark.sql._
+import org.apache.spark.sql.functions._
+import org.apache.spark.sql.types._
 
 private[nkp] trait TokenizerParams extends Params {
 
@@ -37,13 +39,48 @@ class Tokenizer(override val uid: String) extends UnaryTransformer[String, Seq[S
       if ($(filter).length == 0) parsed.map(_.morpheme.surface)
       else parsed.map { lNode: LNode =>
         val mor = lNode.morpheme // morpheme
-        val poses = mor.poses.map(_.toString) intersect $(filter)  // filter with POS
+      val poses = mor.poses.map(_.toString) intersect $(filter) // filter with POS
 
         if (poses.nonEmpty) Some(mor.surface) else None
       }.filter(_.nonEmpty)
         .map(_.get)
 
     words
+  }
+
+  override def transform(dataset: Dataset[_]): DataFrame = {
+    transformSchema(dataset.schema, logging = true)
+
+    if (Dictionary.shouldSync) {
+      transformWithSync(dataset)
+    }
+    else {
+      val transformUDF = udf(this.createTransformFunc, outputDataType)
+      dataset.withColumn($(outputCol), transformUDF(dataset($(inputCol))))
+    }
+  }
+
+  private final val JOIN_ID_COL: String = Identifiable.randomUID("__joinid__")
+
+  private def transformWithSync(dataset: Dataset[_]): DataFrame = {
+    Dictionary.broadcastWords()
+
+    val df = dataset.withColumn(JOIN_ID_COL, monotonically_increasing_id())
+
+    val spark = SparkSession.builder().getOrCreate()
+    import spark.implicits._
+
+    val outputDF = df.select(JOIN_ID_COL, $(inputCol))
+      .mapPartitions { it: Iterator[Row] =>
+        Dictionary.syncWords()
+        val tokenizeFunc = createTransformFunc
+        it.map {
+          case Row(joinId: Long, text: String) => (joinId, tokenizeFunc(text))
+        }
+      }
+      .toDF(JOIN_ID_COL, $(outputCol))
+
+    df.join(outputDF, JOIN_ID_COL).drop(JOIN_ID_COL)
   }
 
   override protected def validateInputType(inputType: DataType): Unit = {
