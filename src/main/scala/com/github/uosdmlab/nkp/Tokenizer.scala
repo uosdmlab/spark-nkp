@@ -63,7 +63,7 @@ class Tokenizer(override val uid: String) extends UnaryTransformer[String, Seq[S
   private final val JOIN_ID_COL: String = Identifiable.randomUID("__joinid__")
 
   private def transformWithSync(dataset: Dataset[_]): DataFrame = {
-    Dictionary.broadcastWords()
+    val bcWords = Dictionary.broadcastWords()
 
     val df = dataset.withColumn(JOIN_ID_COL, monotonically_increasing_id())
 
@@ -72,7 +72,7 @@ class Tokenizer(override val uid: String) extends UnaryTransformer[String, Seq[S
 
     val outputDF = df.select(JOIN_ID_COL, $(inputCol))
       .mapPartitions { it: Iterator[Row] =>
-        Dictionary.syncWords()
+        Dictionary.syncWords(bcWords)
         val tokenizeFunc = createTransformFunc
         it.map {
           case Row(joinId: Long, text: String) => (joinId, tokenizeFunc(text))

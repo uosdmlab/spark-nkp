@@ -10,21 +10,19 @@ object Dictionary {
 
   // Words inside driver. This won't be modified in executor.
   private[nkp] var words = Seq.empty[String]
-  // Broadcasted words for executors.
-  private var bcWords: Broadcast[Seq[String]] = _
 
   /**
     * Executed from driver.
     */
-  private[nkp] def broadcastWords(): Unit = {
-    bcWords = SparkSession.builder().getOrCreate().sparkContext.broadcast(words)
+  private[nkp] def broadcastWords(): Broadcast[Seq[String]] = {
+    SparkSession.builder().getOrCreate().sparkContext.broadcast(words)
   }
 
   /**
     * Executed from executors.
     * NOTE: broadcastWords() should be executed first.
     */
-  private[nkp] def syncWords(): Unit = {
+  private[nkp] def syncWords(bcWords: Broadcast[Seq[String]]): Unit = {
     val dictWords = bcWords.value
     EunjeonAnalyzer.resetUserDict()
     if (words.nonEmpty)
