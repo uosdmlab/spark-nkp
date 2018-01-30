@@ -23,10 +23,8 @@ object Dictionary {
     * NOTE: broadcastWords() should be executed first.
     */
   private[nkp] def syncWords(bcWords: Broadcast[Seq[String]]): Unit = {
-    val dictWords = bcWords.value
     EunjeonAnalyzer.resetUserDict()
-    if (words.nonEmpty)
-      EunjeonAnalyzer.setUserDict(dictWords.iterator)
+    EunjeonAnalyzer.setUserDict(bcWords.value.iterator)
   }
 
   def reset(): this.type = chain {
