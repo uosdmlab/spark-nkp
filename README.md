@@ -12,7 +12,7 @@
 
 ### spark-shell
 ```bash
-spark-shell --packages com.github.uosdmlab:spark-nkp_2.11:0.3.1
+spark-shell --packages com.github.uosdmlab:spark-nkp_2.11:0.3.3
 ```
 
 ### Zeppelin
@@ -23,12 +23,12 @@ spark-shell --packages com.github.uosdmlab:spark-nkp_2.11:0.3.1
 #### Interpreter Setting
 Interpreter Setting > Spark Interpreter > Edit > Dependencies
 
-**artifact** `com.github.uosdmlab:spark-nkp_2.11:0.3.1`
+**artifact** `com.github.uosdmlab:spark-nkp_2.11:0.3.3`
 
 #### Dynamic Dependency Loading (`%spark.dep`)
 ```scala
 %spark.dep
-z.load("com.github.uosdmlab:spark-nkp_2.11:0.3.1")
+z.load("com.github.uosdmlab:spark-nkp_2.11:0.3.3")
 ```
 
 ## 예제
